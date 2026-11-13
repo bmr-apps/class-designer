@@ -25,7 +25,8 @@ export default defineConfig(({ mode, command }) => {
   return {
     base: BASE,
     plugins: [csp(cspFor(SB)), spa404()],
-    build: { target: 'es2022', sourcemap: false },
+    // 성취기준 3천여 건(미리보기 전용, 필요할 때만 불러오는 조각)이 커서 경고 기준만 올린다
+    build: { target: 'es2022', sourcemap: false, chunkSizeWarningLimit: 2000 },
     server: { port: 5173 }, preview: { port: 4173 },
   };
 });
