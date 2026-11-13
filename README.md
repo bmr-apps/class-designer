@@ -39,7 +39,7 @@ npm run dev                    # http://localhost:5173/class-designer/
 
 ### 비밀번호 받기 (허브에서, 한 번만)
 
-1. **https://apps.bmrschool.net/hub/apps** 에 담당자 메일로 로그인한 뒤 **내 서비스** → **별무리 수업 디자이너** 을 눌러 **앱 정보 → DB 접속 정보**를 엽니다. 허브 계정이 없으면 같은 메일로 가입하고 메일 확인을 마치세요(관리자가 초대 메일을 보내 줄 수도 있습니다).
+1. **https://apps.bmrschool.net/hub/apps** 에 담당자 메일로 로그인한 뒤 **내 서비스** → **별무리 수업 디자이너** 을 눌러 **앱 정보 → DB 접속 정보**를 엽니다. 허브 계정이 없으면 같은 메일로 가입하세요(관리자가 초대 메일을 보내 줄 수도 있습니다). 지금은 가입하면 확인 메일 없이 바로 로그인되지만 바뀔 수 있으니, 확인 메일이 오면 링크를 눌러 마쳐 주세요. 가입한 뒤 관리자가 **개발자**로 올려 주어야 내 서비스가 보입니다.
    담당자 메일과 허브 계정 메일이 같으면 자동으로 연결됩니다.
 2. **'처음 비밀번호 받기'** 를 누르면 접속 정보와 비밀번호가 **딱 한 번** 보입니다. 서버 사본은 그 순간 지워집니다.
 3. **복사**해서 바로 `.env.local` 의 `DATABASE_URL` 이나 비밀번호 관리 프로그램에 저장하세요. 창을 닫으면 다시 볼 수 없습니다.
@@ -295,9 +295,10 @@ const r = await fetch(`${FN_URL}/documents?collection=notice`, { headers: sessio
 **바꾸는 순서**
 
 1. `supabase/functions/class-designer-fn/index.ts` 를 고치거나, `supabase/functions/class-designer-<이름>/index.ts` 로 새 함수를 만듭니다 (이름은 꼭 `class-designer-` 로 시작).
-2. 저장소에 올리면 GitHub Actions 의 **서버 함수 검사**가 형식만 확인합니다 (배포는 하지 않음).
-3. 관리자에게 "class-designer 함수 배포해 주세요"라고 요청하면, 코드를 검토한 뒤 배포합니다.
-   배포에는 프로젝트 전체 관리 토큰이 필요해서 선생님이 직접 배포할 수는 없습니다.
+2. 저장소에 올리면 GitHub Actions 의 **서버 함수 검사·배포**(`functions-check.yml`)가 형식을 확인합니다.
+3. 관리자가 이 앱의 **'서버 함수 자동 배포'를 켜 두었으면**, `main` 에 올릴 때 검사가 통과한 뒤 `class-designer-fn` 이 자동으로 배포됩니다(1~2분, 결과는 Actions 실행의 Summary). 다시 배포하려면 Actions 탭 → **서버 함수 검사·배포 → Run workflow**.
+   꺼져 있으면 배포되지 않고 Summary 에 안내가 나오니 관리자에게 배포를 요청하세요. 켜졌는지는 허브 → 내 서비스 → 앱 정보 → 개발 정보의 '함수 자동 배포'에서 볼 수 있습니다.
+   `class-designer-fn` 이 아닌 새 함수(`class-designer-<이름>`)는 자동 배포되지 않으니 관리자에게 요청하세요.
 4. 비밀값(API 키 등)이 필요하면 이름(`CLASS_DESIGNER_…`)만 알려 주시고 값은 관리자에게 안전하게 전달하세요. 코드에서는 `Deno.env.get('CLASS_DESIGNER_…')` 로 읽습니다.
 
 > 함수는 표 주인 권한으로 접속해서 RLS 를 거치지 않습니다. 누가 무엇을 볼 수 있는지는 함수 코드에서 직접 확인하세요.
@@ -309,7 +310,7 @@ const r = await fetch(`${FN_URL}/documents?collection=notice`, { headers: sessio
 
 | 할 일 | 이유 |
 |---|---|
-| 서버 함수 배포, 함수 비밀값 넣기 | 프로젝트 전체 관리 토큰이 필요 |
+| 함수 비밀값 넣기, `class-designer-fn` 이 아닌 새 서버 함수 배포, 자동 배포가 꺼져 있을 때의 배포 | 프로젝트 전체 관리 토큰이 필요 (`class-designer-fn` 은 자동 배포가 켜져 있으면 main 에 올릴 때 배포) |
 | 다른 소셜 로그인(카카오 등) 켜기, 허용된 돌아올 주소 추가, 로그인 메일 설정 (구글 로그인은 이미 켜져 있음) | 프로젝트 전체 설정 |
 | 파일 버킷 정책 바꾸기, 버킷 공개로 열기 | `storage` 스키마 권한 필요 |
 | 확장 기능(extension) 추가 | 프로젝트 전체에 영향 |
@@ -352,7 +353,7 @@ push 할 때마다 GitHub Actions 의 **'공용 주소 점검'** (`.github/workf
 
 ## 이 앱: 별무리 수업 디자이너
 
-- **처음 켜는 순서는 [MIGRATION.md](MIGRATION.md)** (DB 마이그레이션 → 관리자에게 함수 배포·Gemini 키 요청).
+- **처음 켜는 순서는 [MIGRATION.md](MIGRATION.md)** (DB 마이그레이션 → 함수 배포(자동 배포가 켜져 있으면 main 에 올릴 때 자동, 아니면 관리자에게 요청) · Gemini 키는 관리자에게 요청).
 - 서버가 준비되기 전이나 로컬(`npm run dev`)에서는 첫 화면의 **미리보기로 둘러보기**로 써 볼 수 있습니다. 브라우저에만(`class-designer:` 저장소) 저장되고 Alter 는 예시 답을 줍니다.
 - 화면 로직과 서버 로직은 `supabase/functions/class-designer-fn/lib/actions.ts` 하나를 같이 씁니다 (서버: Postgres + Gemini / 미리보기: 브라우저 저장소 + 예시 AI).
 - 쓰기는 모두 서버 함수가 권한을 확인한 뒤 합니다. RLS 는 읽기만 허용하는 이중 잠금입니다. 권한 시험: `node scripts/check-migrations.mjs`
@@ -377,8 +378,8 @@ scripts/bmr-check.mjs       ← 공용 주소 점검 (경고만)
 scripts/check-migrations.mjs← 마이그레이션·RLS 시험 (임시 DB, 실제 DB 안 건드림)
 .bmr-check.json             ← 점검 설정 (허용 외부 스크립트, 막는 규칙 켜기)
 supabase/migrations/        ← 내 SQL 파일 → npm run db:migrate
-supabase/functions/class-designer-fn/  ← 서버 함수 (배포는 관리자). lib/ 에 공용 로직·데이터
+supabase/functions/class-designer-fn/  ← 서버 함수 (자동 배포가 켜져 있으면 main 에 올릴 때 배포). lib/ 에 공용 로직·데이터
 scripts/db-migrate.mjs      ← 마이그레이션 실행 도구
-.github/workflows/          ← 자동 배포(deploy.yml), 함수 검사(functions-check.yml), 공용 주소 점검(bmr-check.yml)
+.github/workflows/          ← 자동 배포(deploy.yml), 함수 검사·자동 배포(functions-check.yml), 공용 주소 점검(bmr-check.yml)
 .env.example                ← .env.local 로 복사해서 쓰기
 ```
