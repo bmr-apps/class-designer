@@ -1,0 +1,22 @@
+# 서버 함수 코드 검사만 합니다 (배포하지 않음, 비밀값 쓰지 않음).
+# 배포는 관리자가 검토한 뒤 합니다.
+name: 서버 함수 검사
+on:
+  push:
+    paths: ['supabase/functions/**']
+  pull_request:
+    paths: ['supabase/functions/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: 타입 검사
+        working-directory: supabase/functions
+        run: deno check */index.ts

@@ -1,0 +1,12 @@
+{
+  "slug": "class-designer",
+  "name": "별무리 수업 디자이너",
+  "schema": "class_designer",
+  "db_role": "class_designer_dev",
+  "bucket": "class-designer",
+  "function": "class-designer-fn",
+  "secret_prefix": "CLASS_DESIGNER_",
+  "supabase_ref": "psupfmarnyxontorftio",
+  "url": "https://apps.bmrschool.net/class-designer/",
+  "template": "bmr-app-templates v2"
+}

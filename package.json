@@ -1,0 +1,19 @@
+{
+  "name": "class-designer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "db:migrate": "node scripts/db-migrate.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "pretendard": "^1.3.9"
+  },
+  "devDependencies": {
+    "pg": "^8.16.0",
+    "vite": "^8.3.8"
+  }
+}

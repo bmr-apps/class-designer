@@ -1,0 +1,22 @@
+# 공용 주소 점검 (경고만): apps.bmrschool.net 을 여러 앱이 함께 쓰므로 서로 방해하지 않는지 살펴봅니다.
+# 경고가 있어도 실패하지 않습니다(배포를 막지 않음). 결과는 이 실행의 Summary 와 BMR APPS 허브 '앱 정보'에 보입니다.
+# 허브로 보낼 때는 GitHub 가 서명한 1회용 신분증(OIDC)만 쓰고, 저장소에 비밀값을 두지 않습니다.
+name: 공용 주소 점검
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 공용 주소 규칙 살펴보기
+        run: node scripts/bmr-check.mjs
