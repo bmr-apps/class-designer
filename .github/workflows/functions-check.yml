@@ -1,6 +1,10 @@
-# 서버 함수 코드 검사만 합니다 (배포하지 않음, 비밀값 쓰지 않음).
-# 배포는 관리자가 검토한 뒤 합니다.
-name: 서버 함수 검사
+# 서버 함수 검사·자동 배포
+#  · 모든 push·PR: 서버 함수 코드 형식 검사(deno check)만 합니다.
+#  · main 에 push(또는 수동 실행): 검사가 통과하면 BMR APPS 허브가 이 앱의 서버 함수(class-designer-fn) 하나만 배포합니다.
+#    저장소에는 비밀값이 없습니다. GitHub 가 서명한 1회용 신분증(OIDC)으로 허브가 '이 앱 저장소의 main' 인지 확인하고,
+#    그 커밋의 supabase/functions/class-designer-fn/ 폴더를 GitHub 에서 직접 읽어 올립니다. 결과는 이 실행의 Summary 와 허브 감사 기록에 남습니다.
+#  · 이 파일 이름(functions-check.yml)을 바꾸면 허브가 배포를 거부합니다.
+name: 서버 함수 검사·배포
 on:
   push:
     paths: ['supabase/functions/**']
@@ -20,3 +24,35 @@ jobs:
       - name: 타입 검사
         working-directory: supabase/functions
         run: deno check */index.ts
+  deploy:
+    needs: check
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: fn-deploy
+      cancel-in-progress: false
+    steps:
+      - name: 허브에 배포 요청 (class-designer-fn)
+        env:
+          HUB_FN_DEPLOY: https://psupfmarnyxontorftio.supabase.co/functions/v1/hub-fn-deploy
+        run: |
+          set -euo pipefail
+          OIDC=$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=bmr-apps-fn-deploy" | jq -r .value)
+          echo "::add-mask::$OIDC"
+          CODE=$(curl -sS -o out.json -w '%{http_code}' --max-time 300 -X POST -H "Authorization: Bearer $OIDC" "$HUB_FN_DEPLOY" || echo 000)
+          echo "허브 응답 $CODE"; cat out.json || true; echo
+          {
+            echo "### 서버 함수 배포"
+            if [ "$CODE" = 200 ]; then
+              jq -r '"- 함수 `\(.fn)` v\(.version_before) → **v\(.version)** (커밋 \(.commit[0:7]), 파일 \(.files)개)\n- /health 응답: \(.health)"' out.json
+            elif [ "$CODE" = 409 ]; then
+              echo "- 건너뜀: $(jq -r .error out.json)"
+            else
+              echo "- ❌ 실패 ($CODE): $(jq -r '.error // "응답 없음"' out.json 2>/dev/null || echo '응답 없음')"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$CODE" = 200 ] || [ "$CODE" = 409 ]
