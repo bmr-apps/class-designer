@@ -350,19 +350,34 @@ push 할 때마다 GitHub Actions 의 **'공용 주소 점검'** (`.github/workf
 - 결과는 GitHub 가 서명한 1회용 토큰(OIDC)으로만 허브에 보내므로 저장소에 비밀값이 없습니다.
 - `.bmr-check.json` 의 `"block_dangerous": true` 로 바꾸면 `clear()`·범위 없는 서비스 워커 두 규칙은 실패로 막습니다(지금은 꺼 둠).
 
+## 이 앱: 별무리 수업 디자이너
+
+- **처음 켜는 순서는 [MIGRATION.md](MIGRATION.md)** (DB 마이그레이션 → 관리자에게 함수 배포·Gemini 키 요청).
+- 서버가 준비되기 전이나 로컬(`npm run dev`)에서는 첫 화면의 **미리보기로 둘러보기**로 써 볼 수 있습니다. 브라우저에만(`class-designer:` 저장소) 저장되고 Alter 는 예시 답을 줍니다.
+- 화면 로직과 서버 로직은 `supabase/functions/class-designer-fn/lib/actions.ts` 하나를 같이 씁니다 (서버: Postgres + Gemini / 미리보기: 브라우저 저장소 + 예시 AI).
+- 쓰기는 모두 서버 함수가 권한을 확인한 뒤 합니다. RLS 는 읽기만 허용하는 이중 잠금입니다. 권한 시험: `node scripts/check-migrations.mjs`
+- 성취기준(2022 개정, 3,124건)은 DB 에 넣지 않고 함수 안 JSON 으로 함께 배포합니다 (공용 DB 용량 절약).
+
 ## 폴더
 
 ```
-index.html                  ← 지금은 '준비 중' 안내 페이지. 내 앱 화면으로 바꾸세요
+index.html                  ← 앱 틀 (BMR APPS 머리줄·바닥줄)
+src/main.ts                 ← 시작·로그인·라우팅 (/class-designer/ 아래 주소)
+src/api.ts                  ← 서버 함수 호출 (또는 미리보기)
+src/preview/                ← 미리보기 모드 (브라우저 저장소 + 예시 AI)
+src/views/                  ← 내 설계안, 설계 마법사, 인쇄, 연결 통계, 관리
+src/wizard/                 ← 마법사 화면 코드·ⓘ 설명, 원본 배치 CSS(legacy.css)
+src/styles/bmr.css          ← BMR APPS 테마 (색·선·모양은 여기서)
+src/docx.ts, src/md.ts      ← Word 내려받기, 간단한 마크다운
 src/supabase.js             ← Supabase 연결 (스키마 class_designer)
-src/main.js, src/style.css  ← 준비 중 페이지용 (지워도 됨)
 src/app-info.js             ← 허브에 적힌 앱 이름·설명 읽기
 src/auth.js                 ← 로그인 도우미 (구글 로그인·로그아웃·지금 사용자)
 src/store.js                ← 브라우저 저장소 도우미 (이름 앞에 'class-designer:' 자동)
 scripts/bmr-check.mjs       ← 공용 주소 점검 (경고만)
+scripts/check-migrations.mjs← 마이그레이션·RLS 시험 (임시 DB, 실제 DB 안 건드림)
 .bmr-check.json             ← 점검 설정 (허용 외부 스크립트, 막는 규칙 켜기)
 supabase/migrations/        ← 내 SQL 파일 → npm run db:migrate
-supabase/functions/class-designer-fn/  ← 서버 함수 (배포는 관리자)
+supabase/functions/class-designer-fn/  ← 서버 함수 (배포는 관리자). lib/ 에 공용 로직·데이터
 scripts/db-migrate.mjs      ← 마이그레이션 실행 도구
 .github/workflows/          ← 자동 배포(deploy.yml), 함수 검사(functions-check.yml), 공용 주소 점검(bmr-check.yml)
 .env.example                ← .env.local 로 복사해서 쓰기
