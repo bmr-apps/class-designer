@@ -1,6 +1,7 @@
 # 서버 함수 검사·자동 배포
 #  · 모든 push·PR: 서버 함수 코드 형식 검사(deno check)만 합니다.
-#  · main 에 push(또는 수동 실행): 검사가 통과하면 BMR APPS 허브가 이 앱의 서버 함수(class-designer-fn) 하나만 배포합니다.
+#  · main 에 push(또는 수동 실행): 검사가 통과하고 관리자가 이 앱의 '서버 함수 자동 배포'를 켜 두었으면
+#    BMR APPS 허브가 이 앱의 서버 함수(class-designer-fn) 하나만 배포합니다. 꺼져 있으면 배포하지 않고 Summary 에 안내만 남깁니다(실행은 통과).
 #    저장소에는 비밀값이 없습니다. GitHub 가 서명한 1회용 신분증(OIDC)으로 허브가 '이 앱 저장소의 main' 인지 확인하고,
 #    그 커밋의 supabase/functions/class-designer-fn/ 폴더를 GitHub 에서 직접 읽어 올립니다. 결과는 이 실행의 Summary 와 허브 감사 기록에 남습니다.
 #  · 이 파일 이름(functions-check.yml)을 바꾸면 허브가 배포를 거부합니다.
@@ -49,10 +50,15 @@ jobs:
             echo "### 서버 함수 배포"
             if [ "$CODE" = 200 ]; then
               jq -r '"- 함수 `\(.fn)` v\(.version_before) → **v\(.version)** (커밋 \(.commit[0:7]), 파일 \(.files)개)\n- /health 응답: \(.health)"' out.json
+            elif [ "$CODE" = 403 ] && [ "$(jq -r '.disabled // false' out.json 2>/dev/null)" = true ]; then
+              echo "- ⚠️ $(jq -r .error out.json)"
             elif [ "$CODE" = 409 ]; then
               echo "- 건너뜀: $(jq -r .error out.json)"
             else
               echo "- ❌ 실패 ($CODE): $(jq -r '.error // "응답 없음"' out.json 2>/dev/null || echo '응답 없음')"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-          [ "$CODE" = 200 ] || [ "$CODE" = 409 ]
+          OFF=$(jq -r '.disabled // false' out.json 2>/dev/null || echo false)
+          [ "$OFF" = true ] && echo "::warning title=서버 함수 자동 배포 꺼짐::$(jq -r .error out.json)"
+          # 꺼짐(403 disabled)은 코드 문제가 아니므로 실패로 표시하지 않는다 (경고만)
+          [ "$CODE" = 200 ] || [ "$CODE" = 409 ] || { [ "$CODE" = 403 ] && [ "$OFF" = true ]; }
