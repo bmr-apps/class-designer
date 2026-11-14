@@ -26,7 +26,12 @@ export function mountCore(D, call) {
     competencies: '핵심 역량', standards: '성취기준', goals: '학습목표 G', task: '수행과제',
     rubric: '루브릭 · 평가 도구 · 교수법', flow: '4MAT 수업 흐름', whereto: 'WHERETO 점검', output: '설계서 출력'
   };
-  const el = (tag, props = {}, ...kids) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(props)) { if (k === 'text') e.textContent = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else if (k in e) e[k] = v; else e.setAttribute(k, v); } kids.flat().forEach(k => k && e.appendChild(typeof k === 'string' ? document.createTextNode(k) : k)); return e; };
+  // 속성 넣기: 값이 바뀌는 DOM 속성(value·checked·disabled·className 등)은 대입하고,
+  // 읽기 전용 속성(list·form 등, setter 가 없음)과 일반 HTML 속성(role·aria-*)은 setAttribute 로 넣는다.
+  // input.list = 'dl-topic' 처럼 대입하면 TypeError(속성에 getter 만 있음)가 나므로 꼭 구분한다.
+  const setProp = (e, k, v) => { let d = null, o = e; while (o && !(d = Object.getOwnPropertyDescriptor(o, k))) o = Object.getPrototypeOf(o);
+    if (d && (d.set || d.writable)) e[k] = v; else e.setAttribute(k, v); };
+  const el = (tag, props = {}, ...kids) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(props)) { if (k === 'text') e.textContent = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else setProp(e, k, v); } kids.flat().forEach(k => k && e.appendChild(typeof k === 'string' ? document.createTextNode(k) : k)); return e; };
   const clear = n => { while (n.firstChild) n.removeChild(n.firstChild); };
   const infoBtn = (key, title) => (window.SDInfo ? window.SDInfo.button(key, { title }) : el('span'));
   const labelInfo = (text, key) => (window.SDInfo ? window.SDInfo.labelWithInfo(text, key, { title: text }) : text);
