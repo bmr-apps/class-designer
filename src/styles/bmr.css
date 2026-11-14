@@ -141,7 +141,7 @@ textarea { line-height: 1.6; }
 .home-start { padding: 32px 36px 34px !important; border-top: 8px solid var(--cyan) !important; box-shadow: var(--hard); margin-bottom: 36px; }
 .home-start h1 { font-size: 34px !important; font-weight: 900; }
 .home-settings { border: var(--border) !important; background: var(--bg-alt) !important; }
-.home-settings[open] > summary { border-bottom: var(--border) !important; }
+.home-settings-head { padding: 10px 16px !important; font-weight: 850 !important; border-bottom: var(--border) !important; }
 .chip-example { background: var(--yellow) !important; color: #000 !important; border: 1.5px solid #000; font-weight: 900 !important; }
 .idea-ex { border: var(--bw) dashed #000 !important; background: #fff !important; color: #000 !important; font-weight: 700 !important; }
 .idea-ex:hover { background: var(--green-light) !important; border-style: solid !important; }
@@ -165,6 +165,15 @@ textarea { line-height: 1.6; }
 .stage-rail { border: var(--border) !important; border-top: 8px solid #000 !important; padding: 14px 22px 10px !important; position: sticky; top: 72px; z-index: 30; background: #fff; }
 .has-banner .stage-rail { top: 72px; }
 .design-title { font-size: 18px !important; font-weight: 900 !important; }
+.design-title-wrap { flex: 1 1 240px; min-width: 0; display: flex; }
+input.design-title { width: 100%; min-width: 0; padding: 4px 8px; border: 2px solid transparent; background: transparent; color: #000; font: inherit; }
+input.design-title::placeholder { color: var(--soft) !important; font-weight: 700 !important; }
+input.design-title:hover { border-color: var(--line-soft) !important; }
+input.design-title:focus { border-color: var(--ink) !important; background: #fff !important; outline: 2px solid var(--focus); outline-offset: 1px; }
+input.design-title:disabled { border-color: transparent !important; background: transparent !important; }
+/* 시작 단계 설정: 접지 않고 항상 펼쳐 둔다 */
+.start-settings { border: 1.5px solid var(--v21-line) !important; background: var(--bg-alt) !important; padding: 12px 14px 14px !important; margin: 14px 0 8px !important; }
+.start-settings-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px !important; font-weight: 800 !important; font-size: 13px !important; color: #000 !important; }
 .wz-pct { color: #000 !important; font-weight: 900; }
 .wz-pct #core-pct { font-size: 20px !important; font-variant-numeric: tabular-nums; }
 .wz-bar { width: 200px !important; height: 14px !important; background: #fff !important; border: var(--border); }

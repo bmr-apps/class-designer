@@ -19,16 +19,16 @@ const START = `
   <button type="button" class="btn btn-ghost btn-sm idea-ex" data-idea="생태 위기 뉴스를 함께 읽고, 청지기로서 우리 학교에서 무엇을 할 수 있을지 탐구하고 싶어요.">생태 · 청지기</button>
   <button type="button" class="btn btn-ghost btn-sm idea-ex" data-idea="AI가 대신 써 준 글과 ‘내 배움’의 경계를 함께 살펴보고 싶습니다.">AI · 배움의 경계</button>
   <button type="button" class="btn btn-ghost btn-sm idea-ex" data-idea="사랑한다는 것이 무엇인지, 작품 속 인물의 선택으로 이야기해 보고 싶어요.">인문학 · 사랑</button></div>
-<details class="home-settings"><summary><span class="label-with-info"><span>선택 설정</span>
-  <button type="button" class="btn btn-ghost info-btn" data-info-key="home.settings" data-info-title="선택 설정" aria-label="선택 설정 설명 보기" aria-expanded="false" aria-haspopup="dialog">ⓘ</button></span></summary>
+<div class="home-settings"><div class="home-settings-head"><span class="label-with-info"><span>설정 · 제목 · 학년 · 학기 · 학점 · 차시</span>
+  <button type="button" class="btn btn-ghost info-btn" data-info-key="home.settings" data-info-title="선택 설정" aria-label="선택 설정 설명 보기" aria-expanded="false" aria-haspopup="dialog">ⓘ</button></span></div>
   <div class="home-settings-grid">
-    <label class="home-title-field">제목 <input name="title" maxlength="200" placeholder="비우면 아이디어·기본 제목"></label>
+    <label class="home-title-field">제목 <input name="title" maxlength="200" placeholder="비우면 기본 제목으로 저장"></label>
     <label>학년 <select name="grade"><option>10</option><option>11</option><option>12</option></select></label>
     <label>학기 <input name="semester" value="1" maxlength="10" size="5" list="sem-list" placeholder="예: 1, 2, 여름"></label>
     <datalist id="sem-list"><option value="1"><option value="2"><option value="1~2"><option value="여름"><option value="겨울"></datalist>
     <label>학점 <input name="credits" type="number" min="1" max="8" value="2" class="in-xs"></label>
     <label>차시 <input name="sessions" type="number" min="4" max="200" placeholder="학점×18" class="in-sm"></label>
-  </div></details>
+  </div></div>
 <p class="error" id="new-err" role="alert"></p>
 <div class="home-cta-row"><button class="btn btn-primary btn-lg" type="submit" id="new-btn">이 아이디어로 시작</button></div>
 </form></section>`;
@@ -46,11 +46,11 @@ const CHAT = `
 export async function render(a: HTMLElement, me: Me) {
   const j = await core('home');
   const staff = me.role === 'admin' || me.role === 'researcher', isAdmin = me.role === 'admin';
-  const keys: string[] = j.steps.map((s: any) => s.key); const label: Record<string, string> = Object.fromEntries(j.steps.map((s: any) => [s.key, s.label]));
+  const label: Record<string, string> = Object.fromEntries(j.steps.map((s: any) => [s.key, s.label]));
   a.append(tpl(START));
   const fm = takeFlash(); if (fm) { const f = $('home-flash'); f.textContent = fm; f.hidden = false; }
   const card = (d: any) => {
-    const i = keys.indexOf(d.step); const pct = d.format === 'core' && i >= 0 ? Math.round(i / Math.max(1, keys.length - 1) * 100) : 0;
+    const pct = d.format === 'core' ? Math.max(0, Math.min(100, Math.round(Number(d.progress) || 0))) : 0;
     const canEdit = d.owner_id === me.id || isAdmin;
     const acts = h('div', { class: 'dcard-actions' });
     if (canEdit) {

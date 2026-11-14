@@ -41,6 +41,8 @@ export const STD_LIMIT = 60, STD_CACHE_DAYS = 30;
 export const PREFERRED_DOMAINS = ['ncic.re.kr', 'moe.go.kr', 'kice.re.kr', 'curri.ncic', 'edunet.net', 'go.kr'];
 export const DRAFT_STEPS = ['topic', 'subject', 'values', 'competencies', 'standards', 'goals', 'task', 'rubric', 'flow'];
 const stepOk = (k: string) => Object.prototype.hasOwnProperty.call(STEPS, k);
+// 진행률을 셀 때 쓰는 단계(마법사 순서, output 제외)
+export const PROGRESS_STEPS = ['start', 'identity', 'topic', 'prereq', 'subject', 'question', 'competencies', 'standards', 'goals', 'task', 'rubric', 'flow', 'whereto'];
 
 export class CoreError extends Error {}
 
@@ -644,6 +646,37 @@ export class Core {
       tags: [truthy(r.competency) ? 'COMP:' + r.competency : '', truthy(r.element) ? 'ELEM:' + r.competency + '/' + r.element : '', truthy(r.goal) ? 'LINK:' + r.goal : '', inArr(r.key, usedR) ? 'TAUGHT:1' : ''].filter(truthy) });
     for (const cp of c.competencies) if (!inArr(cp, column(c.rubric, 'competency'))) T.push({ type: 'competency', key: 'C', text: cp, assessed: 0, tags: [`COMP:${cp}`] });
     return T;
+  }
+  // ---------- 진행률: 저장된 데이터 기준 ----------
+  // '마지막으로 서 있던 단계'가 아니라 실제로 채워진 칸으로 센다(빈 단계를 눌러 두기만 해도 채워진 것으로 보이던 문제 수정).
+  // 화면(src/wizard/core.js 의 filled)도 같은 규칙을 쓴다 — 한쪽을 바꾸면 다른 쪽도 함께 바꾼다.
+  static filled(key: string, c: Obj): boolean {
+    const x = (c && typeof c === 'object' ? c : {}) as Obj;
+    const arr = (v: any) => vals(v).filter((y: any) => y !== null && y !== undefined);
+    const str = (v: any) => trim(isScalar(v) ? toStr(v) : '');
+    switch (key) {
+      case 'start': return str(x.intent) !== '' || str(x.course) !== '';
+      case 'identity': { const id = (x.identity && typeof x.identity === 'object' ? x.identity : {}) as Obj;
+        return arr(x.values).length > 0 || arr(id.goals).length > 0 || str(id.teacher_view) !== '' || str(id.student_view) !== ''; }
+      case 'topic': return str(x.topic) !== '';
+      case 'prereq': return arr(x.prereq).length > 0;
+      case 'subject': return str(x.subject) !== '';
+      case 'question': return str(x.question) !== '';
+      case 'competencies': return arr(x.competencies).length > 0;
+      case 'standards': return arr(x.standards).length > 0;
+      case 'goals': return arr(x.goals).length > 0;
+      case 'task': return str((x.task && typeof x.task === 'object' ? x.task : {}).text) !== '';
+      case 'rubric': return arr(x.rubric).length > 0;
+      case 'flow': return arr(x.flow).some((y: any) => str(y && y.activity) !== '');
+      case 'whereto': return arr(x.whereto).length > 0;
+      default: return false;
+    }
+  }
+  /** 0–100 정수. 저장된 설계(core)만 보고 센다 */
+  static progress(c: any): number {
+    const x = (c && typeof c === 'object' ? c : {}) as Obj;
+    const n = PROGRESS_STEPS.filter((k) => Core.filled(k, x)).length;
+    return Math.round(n / PROGRESS_STEPS.length * 100);
   }
   // ---------- 점검 ----------
   checklist(c: Obj): { step: string; msg: string }[] {

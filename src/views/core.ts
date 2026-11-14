@@ -8,7 +8,8 @@ import { link } from '../router';
 const SHELL = `
 <div class="v21-shell" id="v21-shell">
   <section class="stage-rail card" aria-label="큰 단계">
-    <div class="wz-title-row"><h1 class="design-title" id="design-title"></h1>
+    <div class="wz-title-row"><div class="design-title-wrap">
+      <input class="design-title" id="design-title" type="text" maxlength="200" placeholder="설계서 제목" aria-label="설계서 제목 (고치면 자동 저장됩니다)"></div>
       <div class="wz-pct" aria-live="polite"><span id="core-pct">0%</span>
         <div class="wz-bar" role="progressbar" aria-label="전체 진행률" aria-valuemin="0" aria-valuemax="100" id="core-bar"><span id="core-bar-fill"></span></div></div></div>
     <ol class="wz-stepper" id="core-phases"></ol>
@@ -43,7 +44,7 @@ const SHELL = `
     </main>
     <aside class="card core-nav" aria-label="설계 요약">
       <details class="sum-fold" open><summary>설계 요약</summary><dl id="core-summary" class="wz-summary"></dl></details>
-      <details class="wz-all"><summary>전체 단계 목록</summary><ol id="core-steps"></ol></details>
+      <details class="wz-all" open><summary>전체 단계 목록</summary><ol id="core-steps"></ol></details>
       <p><a class="btn btn-secondary" id="print-link" target="_blank" rel="noopener">🖨 설계서 미리보기·인쇄</a></p>
     </aside>
   </div>
@@ -75,7 +76,9 @@ export async function render(a: HTMLElement, _me: Me, id: number) {
   else a.append(h('div', { class: 'share-bar' }, h('span', { class: 'muted', text: D.shared ? '🔗 공유 중: 다른 선생님이 읽기 전용으로 볼 수 있음' : '🔒 나만 보기' }), ' ',
     h('button', { type: 'button', class: 'btn btn-ghost btn-sm', id: 'share-toggle', text: D.shared ? '공유 끄기' : '공유하기', onclick: share })));
   a.append(tpl(SHELL));
-  $('design-title').textContent = D.title;
+  const titleIn = $('design-title') as HTMLInputElement;
+  titleIn.value = D.title; titleIn.disabled = !D.canEdit;
+  if (!D.canEdit) titleIn.title = '읽기 전용입니다.';
   ($('print-link') as HTMLAnchorElement).href = link(`designs/${id}/print`);
   if (!D.canEdit) { $('chat-clear').remove(); a.append(h('p', { class: 'muted', text: '읽기 전용입니다.' })); }
   a.querySelectorAll('textarea.autogrow').forEach((t: any) => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 2 + 'px'; });

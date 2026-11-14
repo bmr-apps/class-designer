@@ -86,7 +86,8 @@ export function mountCore(D, call) {
         el('div', { class: 'field-label' }, labelInfo('수업 아이디어', 'step.start')),
         el('textarea', { class: 'input-lg autogrow', rows: 4, value: c.intent || '', placeholder: '한두 문장으로 적어 보세요', disabled: !D.canEdit, oninput: e => { c.intent = e.target.value; src('start', 'teacher'); grow(e.target); } })),
         ex ? el('div', { class: 'example-inline' }, el('span', { class: 'chip-example', text: '예시' }), el('span', { text: ex })) : null);
-      const disc = el('details', { class: 'disclosure' }, el('summary', { class: 'disclosure-toggle', text: '선택 설정 · 학년 · 학기 · 학점 · 차시 · 과목명' }),
+      const setBox = el('section', { class: 'start-settings', 'aria-label': '설정' },
+        el('p', { class: 'start-settings-head label-with-info' }, el('span', { text: '설정 · 학년 · 학기 · 학점 · 차시 · 과목명' }), infoBtn('field.sessions', '차시·학점')),
         el('div', { class: 'settings-grid' },
           el('label', {}, el('span', { class: 'label-mini', text: '학년' }), el('select', { disabled: !D.canEdit, onchange: e => { c.grade = +e.target.value; } }, [10, 11, 12].map(g => el('option', { value: g, selected: c.grade === g, text: g + '학년' })))),
           el('label', {}, el('span', { class: 'label-mini', text: '학기' }), el('input', { value: c.semester || '', maxLength: 10, disabled: !D.canEdit, oninput: e => { c.semester = e.target.value.trim(); } })),
@@ -94,13 +95,8 @@ export function mountCore(D, call) {
           el('label', {}, el('span', { class: 'label-mini', text: '차시' }), el('input', { type: 'number', min: 4, max: 200, value: c.sessions, disabled: !D.canEdit, onchange: e => { c.sessions = Math.max(4, Math.min(200, +e.target.value || c.credits * 18)); rescale(); } }))),
         text('과목명 (선택)', () => c.course, v => { c.course = v; src('start', 'teacher'); }));
       // 학점×18 안내·빈 아이디어 안내는 ⓘ (field.sessions / field.intentEmpty)
-      const sum = disc.querySelector('summary') || disc.firstChild;
-      if (sum && window.SDInfo) {
-        const row = el('span', { class: 'label-with-info' }, el('span', { text: '선택 설정 · 학년 · 학기 · 학점 · 차시 · 과목명' }), infoBtn('field.sessions', '차시·학점'));
-        clear(sum); sum.append(row);
-        if (!c.intent) sum.append(infoBtn('field.intentEmpty', '아이디어가 없을 때'));
-      }
-      f.append(disc);
+      if (!c.intent) setBox.querySelector('.start-settings-head')?.append(infoBtn('field.intentEmpty', '아이디어가 없을 때'));
+      f.append(setBox);
       requestAnimationFrame(() => f.querySelectorAll('textarea.autogrow').forEach(grow));
     },
     identity: f => {
@@ -290,7 +286,25 @@ export function mountCore(D, call) {
     { n: 3, name: '목표', hint: '주제 · 교과 · 질문 · 역량', keys: ['topic', 'prereq', 'subject', 'question', 'competencies', 'standards'] },
     { n: 4, name: '평가 · 수업', hint: '루브릭 · 4MAT', keys: ['goals', 'task', 'rubric', 'flow', 'whereto', 'output'] }];
   const phaseOf = k => PHASES.find(p => p.keys.includes(k)) || PHASES[PHASES.length - 1];
-  const filled = k => { const v = { start: c.intent || c.course, identity: (c.values.length || c.identity.goals.length) && (c.identity.teacher_view || c.identity.student_view || c.values.length), question: c.question, topic: c.topic, prereq: c.prereq.length, subject: c.subject, competencies: c.competencies.length, standards: c.standards.length, goals: c.goals.length, task: c.task.text, rubric: c.rubric.length, flow: c.flow.some(x => x.activity), whereto: c.whereto.length, output: false }[k]; return !!v || !!(c.sources && c.sources[k]); };
+  // 채워짐 판정은 실제 저장된 데이터만 본다(단계를 눌러 두기만 해도 채워진 것으로 보이던 문제 수정).
+  // 서버(lib/core.ts 의 Core.filled)와 같은 규칙 — 한쪽을 바꾸면 다른 쪽도 함께 바꾼다.
+  const filled = k => { const s = v => (v === null || v === undefined ? '' : String(v).trim());
+    switch (k) {
+      case 'start': return s(c.intent) !== '' || s(c.course) !== '';
+      case 'identity': return (c.values || []).length > 0 || (c.identity && c.identity.goals || []).length > 0 || s(c.identity && c.identity.teacher_view) !== '' || s(c.identity && c.identity.student_view) !== '';
+      case 'topic': return s(c.topic) !== '';
+      case 'prereq': return (c.prereq || []).length > 0;
+      case 'subject': return s(c.subject) !== '';
+      case 'question': return s(c.question) !== '';
+      case 'competencies': return (c.competencies || []).length > 0;
+      case 'standards': return (c.standards || []).length > 0;
+      case 'goals': return (c.goals || []).length > 0;
+      case 'task': return s(c.task && c.task.text) !== '';
+      case 'rubric': return (c.rubric || []).length > 0;
+      case 'flow': return (c.flow || []).some(x => x && s(x.activity) !== '');
+      case 'whereto': return (c.whereto || []).length > 0;
+      default: return false;
+    } };
   const shortLabel = l => l.replace(/^\d단계 · /, '').replace(/ \(.*\)$/, '');
   function drawStepper() {
     const cur = phaseOf(steps[idx].key), done = steps.filter(x => x.key !== 'output' && filled(x.key)).length, pct = Math.round(done / (steps.length - 1) * 100);
@@ -302,7 +316,7 @@ export function mountCore(D, call) {
       const total = p.keys.filter(k => k !== 'output').length;
       const st = p === cur ? 'current' : n >= total ? 'done' : p.n < cur.n ? 'partial' : 'pending';
       const hint = st === 'current' ? ('지금 · ' + (p.hint || '')) : (st === 'done' ? '완료' : (p.hint || ''));
-      const btn = el('button', { type: 'button', 'aria-current': st === 'current' ? 'step' : 'false', onclick: () => go(first) },
+      const btn = el('button', { type: 'button', 'aria-current': st === 'current' ? 'step' : 'false', onclick: () => go(first, { free: true }) },
         el('span', { class: 'wz-dot', 'aria-hidden': 'true', text: st === 'done' ? '✓' : String(p.n) }),
         el('span', { class: 'wz-ph-txt' }, el('b', { text: p.name }), el('small', { text: hint })));
       ph.append(el('li', { class: 'wz-ph ' + st }, btn));
@@ -324,7 +338,7 @@ export function mountCore(D, call) {
       else { infoEl.hidden = true; }
     }
     const helpP = $('core-step-help'); if (helpP) { helpP.textContent = ''; helpP.hidden = true; }
-    const nav = $('core-steps'); clear(nav); steps.forEach((x, i) => nav.append(el('li', { class: i === idx ? 'on' : '' }, el('a', { href: '#', text: x.label + (c.sources && c.sources[x.key] ? ' ✓' : ''), onclick: ev => { ev.preventDefault(); go(i); } }))));
+    const nav = $('core-steps'); clear(nav); steps.forEach((x, i) => nav.append(el('li', { class: i === idx ? 'on' : '' }, el('a', { href: '#', text: x.label + (filled(x.key) ? ' ✓' : ''), onclick: ev => { ev.preventDefault(); go(i, { free: true }); } }))));
     const f = $('core-form'); clear(f); FORMS[s.key](f);
     $('core-suggest').hidden = !(s.kind === 'ai' || s.key === 'whereto') || !D.canEdit;
     $('core-draft').hidden = !D.canEdit || idx < steps.findIndex(x => x.key === 'topic'); $('core-prev').disabled = idx === 0; $('core-next').hidden = idx === steps.length - 1;
@@ -343,18 +357,25 @@ export function mountCore(D, call) {
     if (k === 'start' && !(c.sessions >= 4)) return '전체 차시를 4 이상으로 입력하세요.';
     return '';
   }
-  // 자동 저장: 입력이 멈추고 1.5초 뒤, 바뀐 경우에만. 저장 상태는 aria-live 로 알림
+  // 자동 저장: 입력이 멈추고 1.5초 뒤, 바뀐 경우에만. 저장 상태는 aria-live 로 알림 (제목 변경도 같은 경로로 저장)
   let chk = D.checks || [], lastJSON = JSON.stringify(c), timer = 0, saving = null;
   const stateEl = $('core-saved'), setState = (cls, t) => { stateEl.className = 'muted save-state ' + cls; stateEl.textContent = t; };
-  const dirty = () => D.canEdit && JSON.stringify(c) !== lastJSON;
+  // 위쪽 제목 칸(#design-title)에서 제목을 바로 고칠 수 있게 한다. 고치면 자동 저장되고 탭 제목도 따라간다.
+  const titleEl = $('design-title'); let lastTitle = D.title;
+  const syncTitle = () => { if (titleEl && titleEl.value !== D.title) titleEl.value = D.title; document.title = (D.title || '설계서') + ' · 별무리 수업 디자이너'; };
+  if (titleEl && D.canEdit) titleEl.addEventListener('input', () => { D.title = titleEl.value; document.title = (titleEl.value || '설계서') + ' · 별무리 수업 디자이너'; schedule(); });
+  syncTitle();
+  const dirty = () => D.canEdit && (JSON.stringify(c) !== lastJSON || D.title !== lastTitle);
   function schedule() { if (!D.canEdit) return; clearTimeout(timer); if (!dirty()) return; setState('dirty', '저장 안 된 변경 있음…'); timer = setTimeout(() => save(), 1500); }
   async function save() {
     if (!D.canEdit) return true; clearTimeout(timer);
     if (saving) await saving.catch(() => {});
     if (!dirty()) return true;
-    const snap = JSON.stringify(c); setState('', '저장 중…');
+    const snap = JSON.stringify(c), snapTitle = D.title; setState('', '저장 중…');
     saving = api('', { title: D.title, core: c });
     try { const j = await saving; lastJSON = snap; if (JSON.stringify(c) === snap) { Object.assign(c, j.core); lastJSON = JSON.stringify(c); }
+      if (j.title && j.title !== snapTitle) { D.title = j.title; if (document.activeElement !== titleEl) syncTitle(); else document.title = (j.title || '설계서') + ' · 별무리 수업 디자이너'; }
+      lastTitle = D.title;
       chk = j.checks || chk; setState('ok', '저장됨 ' + j.saved_at); warn(); if (dirty()) schedule(); return true; }
     catch (e) { setState('err', '저장 실패: ' + e.message + ' (자동으로 다시 시도합니다)'); timer = setTimeout(() => save(), 10000); err(e.message); return false; }
     finally { saving = null; }
@@ -363,14 +384,25 @@ export function mountCore(D, call) {
   document.addEventListener('click', e => { if (e.target.closest('.core-main button')) setTimeout(schedule, 0); });
   window.addEventListener('beforeunload', e => { if (dirty()) { e.preventDefault(); e.returnValue = ''; } });
   // 점검: 경고만(저장·이동은 막지 않음). 현재 단계 경고 + 출력 단계에서 전체 체크리스트
-  function warn() {
+  // extra: 단계를 자유롭게 건너뛸 때 '확인해 보세요' 안내 한 줄 (이동을 막지 않는다)
+  function warn(extra = '') {
     const box = $('core-warn'); clear(box); const k = steps[idx].key, list = k === 'output' ? chk : chk.filter(w => w.step === k);
-    if (k === 'output' && !list.length) { box.className = 'wz-warn ok'; box.append(el('p', { text: '✓ 설계 규칙 점검을 모두 통과했습니다.' })); return; }
-    box.className = 'wz-warn'; if (!list.length) return;
+    const hint = extra ? el('p', { class: 'muted', text: '확인: ' + extra }) : null;
+    if (k === 'output' && !list.length) { box.className = 'wz-warn ok'; if (hint) box.append(hint); box.append(el('p', { text: '✓ 설계 규칙 점검을 모두 통과했습니다.' })); return; }
+    if (!list.length && !hint) { box.className = 'wz-warn'; return; }
+    box.className = 'wz-warn'; if (hint) box.append(hint);
+    if (!list.length) return;
     box.append(el('p', { class: 'muted', text: k === 'output' ? `설계 점검 ${list.length}건 (저장·인쇄는 가능합니다)` : '확인해 주세요 (저장은 됩니다)' }),
-      el('ul', {}, list.map(w => el('li', {}, w.msg, k === 'output' ? el('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: '이동', onclick: () => go(steps.findIndex(x => x.key === w.step)) }) : null))));
+      el('ul', {}, list.map(w => el('li', {}, w.msg, k === 'output' ? el('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: '이동', onclick: () => go(steps.findIndex(x => x.key === w.step), { free: true }) }) : null))));
   }
-  async function go(i) { if (i < 0 || i >= steps.length) return; const m = valid(); if (i > idx && m) return err(m); err(''); if (await save()) { idx = i; draw(); window.scrollTo(0, 0); $('core-step-title').focus({ preventScroll: true }); } }
+  // 이동: 큰 단계·단계 목록으로는 어디든 바로 건너뛸 수 있다(막지 않고 안내만). '저장하고 다음'만 현재 단계를 확인한다.
+  async function go(i, opts) {
+    if (i < 0 || i >= steps.length) return;
+    const free = !!(opts && opts.free), from = idx, m = valid();
+    if (!free && i > from && m) return err(m);
+    err('');
+    if (await save()) { idx = i; draw(); window.scrollTo(0, 0); $('core-step-title').focus({ preventScroll: true }); if (free && i > from && m) warn(m); }
+  }
   $('core-prev').addEventListener('click', () => go(idx - 1)); $('core-next').addEventListener('click', () => go(idx + 1)); $('core-suggest').addEventListener('click', suggest);
   // 초안 전체 작성: 비어 있는 단계만 AI가 채우고 저장 전에 교사가 검토
   $('core-draft').addEventListener('click', async () => {

@@ -188,7 +188,8 @@ export async function run(c: Ctx, b: Record<string, any>): Promise<unknown> {
       const all = await repo.designs({ deleted: false, limit: 1000 });
       const nm = await repo.names(all.map((d) => d.owner_id));
       const prep = (d: Design) => { const st = String(d.core?.step ?? 'start'); return { id: d.id, owner_id: d.owner_id, title: d.title, grade: d.grade, semester: d.semester, status: d.status, format: d.format,
-        updated_at: d.updated_at, shared: d.shared, owner: nm[d.owner_id] ?? '', step: ({ tools: 'rubric', methods: 'flow', values: 'identity' } as any)[st] ?? st, subject_c: String(d.core?.subject ?? '') }; };
+        updated_at: d.updated_at, shared: d.shared, owner: nm[d.owner_id] ?? '', step: ({ tools: 'rubric', methods: 'flow', values: 'identity' } as any)[st] ?? st, subject_c: String(d.core?.subject ?? ''),
+        progress: Core.progress(d.core) }; };
       const staff = isStaff(c.me);
       return { designs: all.filter((d) => staff ? true : d.owner_id === c.uid).map(prep),
         shared: all.filter((d) => d.shared && d.owner_id !== c.uid).slice(0, 200).map(prep), steps: steps() };
@@ -200,9 +201,11 @@ export async function run(c: Ctx, b: Record<string, any>): Promise<unknown> {
       e.credits = Math.max(1, Math.min(8, toInt(b.credits ?? 2))); e.sessions = Math.max(4, Math.min(200, toInt(b.sessions ?? 0) || e.credits * 18));
       e.intent = mbSub(trim(String(b.intent ?? '')), 0, 800);
       const cc = core.sanitize(e);
-      let title = trim(mbSub(String(b.title ?? ''), 0, 200));
-      if (title === '') title = cc.intent !== '' ? mbSub(cc.intent, 0, 40) : '중핵 수업 설계서';
-      cc.course = mbSub(trim(String(b.course ?? '')) || (title === '중핵 수업 설계서' ? '' : title), 0, 60);
+      // 제목: 입력한 제목 → 과목명 → 기본 제목. 아이디어 문장을 제목·과목명으로 덮어쓰지 않는다(제목이 아이디어에 고정되던 문제).
+      const courseIn = mbSub(trim(String(b.course ?? '')), 0, 60);
+      cc.course = courseIn;
+      let title = mbSub(trim(String(b.title ?? '')), 0, 200);
+      if (title === '') title = courseIn !== '' ? courseIn : '새 중핵 수업 설계';
       const id = await repo.designInsert({ owner_id: c.uid, title, grade: String(cc.grade), semester: cc.semester, format: 'core', core: cc });
       // 저장 전 초안 대화를 이 설계로 옮김 (최대 40개)
       const dr = await repo.draft(c.uid, 40);
@@ -223,7 +226,8 @@ export async function run(c: Ctx, b: Record<string, any>): Promise<unknown> {
     case 'save': {
       const d = await loadDesign(c, idOf(b), true);
       const cc = core.sanitize(b.core && typeof b.core === 'object' ? b.core : {});
-      const title = mbSub(trim(String(typeof b.title === 'string' ? b.title : d.title)), 0, 200) || d.title;
+      const title = mbSub(trim(String(typeof b.title === 'string' ? b.title : d.title)), 0, 200)
+        || mbSub(cc.course, 0, 60) || d.title || '새 중핵 수업 설계';
       const prev = core.sanitize(d.core ?? {});
       const changed = stable(cc) !== stable(d.core ?? {}) || title !== d.title;
       if (changed) {
