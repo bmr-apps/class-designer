@@ -41,9 +41,11 @@ code { background: var(--cyan-light); padding: 1px 6px; font-size: 13px; border:
 /* ---------- 머리줄 ---------- */
 .top { position: sticky; top: 0; z-index: 60; display: flex; align-items: center; gap: 14px; height: 72px; padding: 0 20px; background: var(--bg); color: var(--text); border-bottom: var(--border); box-shadow: none; }
 .top a { color: var(--text); text-decoration: none; }
-.mark { flex: none; display: grid; place-content: center; width: 52px; height: 52px; border: var(--border); background: var(--bg); color: var(--text) !important; font-weight: 900; font-size: 14px; line-height: .98; letter-spacing: .02em; text-align: left; }
-.mark span { display: block; } .mark span:last-child { font-size: 10px; letter-spacing: .14em; margin-top: 2px; }
+.mark { flex: none; display: grid; place-content: center; width: 52px; height: 52px; border: var(--border); background: var(--bg); color: var(--text) !important; line-height: 0; }
+.mark svg { display: block; width: 40px; height: 40px; }
 a.mark:hover { background: var(--yellow); color: #000; }
+/* 로고 호버: 바탕이 노랑으로 바뀌므로 별빛은 흰색으로 뒤집어 또렷하게 */
+a.mark:hover .mk-spark { fill: #fff; }
 .app-brand { display: flex; flex-direction: column; min-width: 0; padding: 4px 8px; line-height: 1.2; }
 .app-brand b { font-size: 19px; font-weight: 900; white-space: nowrap; }
 .app-brand small { font-size: 12.5px; color: var(--muted); font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -301,7 +303,7 @@ table { border-collapse: collapse; }
 }
 @media (max-width: 720px) {
   .top { height: auto; min-height: 60px; padding: 8px 10px; gap: 8px; flex-wrap: wrap; }
-  .mark { width: 44px; height: 44px; font-size: 12px; } .mark span:last-child { font-size: 8.5px; }
+  .mark { width: 44px; height: 44px; } .mark svg { width: 32px; height: 32px; }
   .app-brand { flex: 1; } .app-brand b { font-size: 16px; } .app-brand small { display: none; }
   .topnav { width: 100%; margin: 0; gap: 6px; justify-content: space-between; }
   .nav-item { padding: 5px 8px; font-size: 13px; }
